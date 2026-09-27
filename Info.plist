@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleIdentifier</key><string>local.vibote</string>
+<key>CFBundleName</key><string>Vibote</string>
+<key>CFBundleExecutable</key><string>Vibote</string>
+<key>CFBundleIconFile</key><string>AppIcon</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+<key>CFBundleVersion</key><string>1</string>
+<key>CFBundleShortVersionString</key><string>0.1.0</string>
+<key>LSMinimumSystemVersion</key><string>14.0</string>
+<key>NSMicrophoneUsageDescription</key><string>Transcribe your coding prompts using the selected macOS microphone.</string>
+<key>NSSpeechRecognitionUsageDescription</key><string>Turn speech into editable coding prompts with on-device recognition.</string>
+<key>NSBluetoothAlwaysUsageDescription</key><string>Connect to your remote’s Bluetooth microphone.</string>
+<key>NSHighResolutionCapable</key><true/>
+</dict></plist>
