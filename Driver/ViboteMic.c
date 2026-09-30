@@ -7,6 +7,7 @@
 #include <pthread.h>
 #include <stdatomic.h>
 #include <string.h>
+#include <stddef.h>
 
 enum {
     kObjectID_PlugIn = kAudioObjectPlugInObject,
@@ -32,7 +33,7 @@ static UInt64 gIOCount = 0;
 static Float64 gHostTicksPerFrame = 0;
 static UInt64 gAnchorHostTime = 0;
 static UInt64 gTimestampCount = 0;
-static Float32 gRing[kRingFrames * kChannels];
+static _Atomic(Float32) gRing[kRingFrames * kChannels];
 
 #pragma mark Forward declarations
 
@@ -174,9 +175,10 @@ static OSStatus IsPropertySettable(AudioServerPlugInDriverRef driver, AudioObjec
 }
 
 static OSStatus GetPropertyDataSize(AudioServerPlugInDriverRef driver, AudioObjectID id, pid_t pid, const AudioObjectPropertyAddress* a, UInt32 qs, const void* qd, UInt32* out) {
+    if (out == NULL) return kAudioHardwareIllegalOperationError;
     UInt32 dataSize = 0;
     // Reuse GetPropertyData with a large scratch buffer to compute sizes consistently.
-    union { UInt8 bytes[256]; } scratch;
+    union { max_align_t alignment; UInt8 bytes[256]; } scratch;
     OSStatus status = GetPropertyData(driver, id, pid, a, qs, qd, sizeof(scratch), &dataSize, &scratch);
     if (status == 0) *out = dataSize;
     // Release any CF object we just produced.
@@ -276,10 +278,14 @@ static OSStatus GetPropertyData(AudioServerPlugInDriverRef driver, AudioObjectID
 static OSStatus SetPropertyData(AudioServerPlugInDriverRef driver, AudioObjectID id, pid_t pid, const AudioObjectPropertyAddress* a, UInt32 qs, const void* qd, UInt32 size, const void* data) {
     (void)pid; (void)qs; (void)qd;
     if (driver != gDriverRef) return kAudioHardwareBadObjectError;
+    if (a == NULL || data == NULL) return kAudioHardwareIllegalOperationError;
     if (IsStream(id) && (a->mSelector == kAudioStreamPropertyVirtualFormat || a->mSelector == kAudioStreamPropertyPhysicalFormat)) {
         if (size < sizeof(AudioStreamBasicDescription)) return kAudioHardwareBadPropertySizeError;
         const AudioStreamBasicDescription* f = data;
-        return (f->mSampleRate == kSampleRate && f->mChannelsPerFrame == kChannels && f->mFormatID == kAudioFormatLinearPCM) ? 0 : kAudioDeviceUnsupportedFormatError;
+        return (f->mSampleRate == kSampleRate && f->mChannelsPerFrame == kChannels &&
+                f->mFormatID == kAudioFormatLinearPCM && f->mFormatFlags == StreamFormat().mFormatFlags &&
+                f->mBytesPerPacket == 4 * kChannels && f->mFramesPerPacket == 1 &&
+                f->mBytesPerFrame == 4 * kChannels && f->mBitsPerChannel == 32) ? 0 : kAudioDeviceUnsupportedFormatError;
     }
     if (IsStream(id) && a->mSelector == kAudioStreamPropertyIsActive) return 0;
     return kAudioHardwareUnknownPropertyError;
@@ -291,7 +297,7 @@ static OSStatus StartIO(AudioServerPlugInDriverRef driver, AudioObjectID id, UIn
     (void)client;
     if (driver != gDriverRef || id != kObjectID_Device) return kAudioHardwareBadObjectError;
     pthread_mutex_lock(&gStateMutex);
-    if (gIOCount++ == 0) { gTimestampCount = 0; gAnchorHostTime = mach_absolute_time(); memset(gRing, 0, sizeof(gRing)); }
+    if (gIOCount++ == 0) { gTimestampCount = 0; gAnchorHostTime = mach_absolute_time(); for (UInt32 i = 0; i < kRingFrames * kChannels; i++) atomic_store_explicit(&gRing[i], 0, memory_order_relaxed); }
     pthread_mutex_unlock(&gStateMutex);
     return 0;
 }
@@ -307,8 +313,8 @@ static OSStatus GetZeroTimeStamp(AudioServerPlugInDriverRef driver, AudioObjectI
     pthread_mutex_lock(&gStateMutex);
     UInt64 now = mach_absolute_time();
     Float64 ticksPerPeriod = gHostTicksPerFrame * kRingFrames;
-    Float64 next = (Float64)gAnchorHostTime + (Float64)(gTimestampCount + 1) * ticksPerPeriod;
-    if (next <= (Float64)now) gTimestampCount++;
+    // Catch up in one step after a long scheduling gap or wake from sleep.
+    gTimestampCount = (UInt64)((Float64)(now - gAnchorHostTime) / ticksPerPeriod);
     *sampleTime = (Float64)(gTimestampCount * kRingFrames);
     *hostTime = gAnchorHostTime + (UInt64)((Float64)gTimestampCount * ticksPerPeriod);
     *seed = 1;
@@ -331,11 +337,11 @@ static OSStatus DoIOOperation(AudioServerPlugInDriverRef driver, AudioObjectID i
     Float32* buffer = main;
     if (op == kAudioServerPlugInIOOperationWriteMix) {
         UInt64 start = (UInt64)cycle->mOutputTime.mSampleTime;
-        for (UInt32 f = 0; f < frames; f++) gRing[(start + f) % kRingFrames] = buffer[f];
+        for (UInt32 f = 0; f < frames; f++) atomic_store_explicit(&gRing[(start + f) % kRingFrames], buffer[f], memory_order_relaxed);
     } else if (op == kAudioServerPlugInIOOperationReadInput) {
         UInt64 start = (UInt64)cycle->mInputTime.mSampleTime;
         // Read, then clear, so the input goes silent when nothing is being played instead of looping stale audio.
-        for (UInt32 f = 0; f < frames; f++) { UInt64 i = (start + f) % kRingFrames; buffer[f] = gRing[i]; gRing[i] = 0; }
+        for (UInt32 f = 0; f < frames; f++) { UInt64 i = (start + f) % kRingFrames; buffer[f] = atomic_exchange_explicit(&gRing[i], 0, memory_order_relaxed); }
     }
     return 0;
 }

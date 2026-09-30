@@ -75,7 +75,6 @@ final class BluetoothProbe: NSObject, ObservableObject, CBCentralManagerDelegate
         guard let central else { return }
         let known = central.retrieveConnectedPeripherals(withServices: [CBUUID(string: "1812")])
         if let device = known.first(where: { $0.name?.localizedCaseInsensitiveContains(supportedRemote.bluetoothName) == true }) { connect(device); return }
-        if let id = UUID(uuidString: "74655BCF-7DE6-A84E-498E-8D65CF15D195"), let device = central.retrievePeripherals(withIdentifiers: [id]).first { connect(device); return }
         note("\(supportedRemote.name) not found among connected devices; scanning…")
         central.scanForPeripherals(withServices: nil)
         timeout?.invalidate()
@@ -207,7 +206,7 @@ final class BluetoothProbe: NSObject, ObservableObject, CBCentralManagerDelegate
                 if listening {
                     openingMic = false; openingTimer?.invalidate()
                     decoder = ADPCM(); pending.removeAll()
-                    micStatus = live ? "Remote microphone streaming → BlackHole 2ch" : "Receiving remote microphone…"
+                    micStatus = live ? "Remote microphone streaming → Vibote Mic" : "Receiving remote microphone…"
                 }
             case 0x00:
                 if listening { finish() }

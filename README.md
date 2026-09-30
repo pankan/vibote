@@ -12,24 +12,57 @@ Vibe coding from your remote. Vibote is a macOS app that turns a Bluetooth TV re
 - **AI voice app integrations.** Handy, Wispr Flow and Superwhisper are started and stopped directly; any other dictation app works by holding its hotkey.
 - **Vibote Mic.** A bundled virtual microphone, so any app can record from the remote. No BlackHole needed.
 - **Status at a glance.** Connection, remote battery, a live input-level meter, and a permissions checklist.
+- **Start at login.** Enable it in the General panel to open Vibote each time you sign in. The setting follows macOS Login Items and refreshes when you return to the app.
 
 Supported remote: T6 Remote (vendor `0x620A`, product `0x0407`). New models are added as a `RemoteModel` in `Sources/App.swift`.
 
+The T6 also has a full Bluetooth QWERTY keyboard on the back, for typing while using the front buttons for shortcuts and voice. **Support for more remotes is coming soon.** To request your model, [open a remote support request](https://github.com/pankan/vibote/issues/new). Include the brand and model, a product link or front/back photos, and whether you can help test it on your Mac.
+
+These are the cheapest listings we found as of 30 September 2026: [Amazon India — ETZIN EPL-1536WA](https://www.amazon.in/dp/B0G2HF5FZN) and [Flipkart India — Tobo TD-1536WA](https://www.flipkart.com/tobo-wireless-remote-keyboard-mouse-2-4g-bluetooth-connectivity-1200-android-windows-mac-os-smart-tv-android-td-1536wa-controller/p/itm118b8044425cb?pid=REMHGVNB5ZXBN4YV). These are not referral links. Price range: ₹650–₹900; prices and delivery charges can change.
+
 ## Getting started
 
-Requires macOS 14 or later and the Xcode command-line tools.
+Requires macOS 14 or later. Supports Apple silicon and Intel Macs.
+
+1. [Download Vibote.dmg](https://github.com/pankan/vibote/releases/latest/download/Vibote.dmg) and open it.
+2. Drag **Vibote.app** into **Applications**, eject the disk image, and open Vibote from Applications.
+3. Pair the remote in **System Settings → Bluetooth** and follow Vibote's **Permissions** panel.
+4. Hold **Assistant** and speak. By default the text is transcribed on-device and typed into the focused app.
+
+This open-source build is not notarized. If macOS blocks it, go to **System Settings → Privacy & Security → Open Anyway** for Vibote and confirm opening it.
+
+For AI voice apps, select **Voice → AI voice app**, click **Install Vibote Mic**, and choose **Vibote Mic** as the voice app's microphone. Installation asks for administrator approval and briefly restarts audio.
+
+Keep Vibote running: macOS clears key remaps whenever the remote reconnects, and Vibote reapplies them.
+
+Enable **General → Start at login** to open Vibote automatically. If macOS needs approval, use the **Settings…** button to allow Vibote in Login Items. Keep the app in a stable location (for example, `/Applications`) before enabling this setting.
+
+### Build from source
+
+For development, install the Xcode command-line tools, then:
 
 ```sh
-./scripts/build.sh               # builds build/Vibote.app
-./scripts/install-mic.sh         # installs Vibote Mic (administrator password; audio restarts briefly)
+./scripts/build.sh               # builds the universal build/Vibote.app
 open build/Vibote.app
 ```
 
-1. Pair the remote in System Settings → Bluetooth.
-2. Open Vibote and grant the permissions it lists (see below).
-3. Hold **Assistant** and speak. By default the text is transcribed on-device and typed into the focused app.
+To build a versioned release DMG:
 
-Keep Vibote running: macOS clears key remaps whenever the remote reconnects, and Vibote reapplies them.
+```sh
+./scripts/create-dmg.sh          # build/Vibote-VERSION.dmg and checksum
+```
+
+The DMG opens with a branded background, large icons, and a drag-to-Applications guide. It includes the app and its bundled microphone driver; license and installation text are in the hidden `.Installation` folder. Local checksums are written beside the versioned DMG in `build/`; published releases include `SHA256SUMS.txt`. Packaging uses Python 3 and installs the pinned `dmgbuild` tool into `.build/dmg-tools` on the first run.
+
+## Landing page
+
+The static landing page lives in `docs/`. Preview it locally:
+
+```sh
+python3 -m http.server 8080 --directory docs
+```
+
+Then open `http://localhost:8080`. It has no build step; the page loads DM Sans from Google Fonts. The GitHub Pages workflow deploys `docs/` from `main` after Pages is configured to use **GitHub Actions**. The public URL is [pankan.github.io/vibote](https://pankan.github.io/vibote/).
 
 ## Default mapping
 
@@ -65,7 +98,7 @@ Hold, speak, release: Apple's on-device speech recognition types the text into t
 
 ### AI voice app
 
-Holding streams the remote into **Vibote Mic** and starts your dictation app, which types the text. Select Vibote Mic as that app's microphone. Apps are defined in `Sources/VoiceApps.swift`; installed ones are marked ✓.
+Holding streams the remote into **Vibote Mic** and starts your dictation app, which types the text. Click **Install Vibote Mic** in the Voice panel, then select Vibote Mic as that app's microphone. Apps are defined in `Sources/VoiceApps.swift`; installed ones are marked ✓.
 
 | App | Control | How |
 |---|---|---|
@@ -79,6 +112,10 @@ Direct-control deep links open in the background, so the app you're typing into 
 ### Vibote Mic
 
 A virtual microphone implemented as a Core Audio HAL plug-in (`Driver/ViboteMic.c`): a mono 48 kHz loopback device. Vibote plays remote audio into it and apps record it as a normal input. It is never offered as a system output.
+
+The app bundles the driver. In **Voice → AI voice app**, click **Install Vibote Mic**. macOS asks for administrator approval, then audio restarts briefly. No separate terminal setup is needed.
+
+For manual installation or removal during development:
 
 ```sh
 ./scripts/install-mic.sh              # build and install
@@ -111,9 +148,15 @@ Plain keyboard-key remaps need none of these. The build is ad-hoc signed, so mac
 ## Verification
 
 ```sh
-xcrun swiftc -module-cache-path .build/module-cache Sources/ADPCM.swift Tests/DecoderChecks.swift -o .build/decoder-checks
-.build/decoder-checks
+./scripts/check.sh
+./scripts/build.sh
 ```
+
+## Contributing and releases
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development, [CHANGELOG.md](CHANGELOG.md) for versions, and [the release guide](maintenance/RELEASING.md) for publishing. Report vulnerabilities privately using [SECURITY.md](SECURITY.md). Read [PRIVACY.md](PRIVACY.md) for local storage and voice handling.
+
+The first release is early software. Automated checks do not replace testing Bluetooth, permissions, and audio with a physical remote.
 
 ## License
 

@@ -67,16 +67,22 @@ let macKeyCodes: [UInt8: CGKeyCode] = {
     for (i, code) in fkeys.enumerated() { map[UInt8(0x3A + i)] = code }
     return map
 }()
-let keyOptions: [KeyOption] = [
+let keyOptions: [KeyOption] = {
+    let named: [(String, UInt8)] = [
     ("Right Option", 0xE6), ("Right Command", 0xE7), ("Right Control", 0xE4), ("Right Shift", 0xE5),
     ("Left Option", 0xE2), ("Left Command", 0xE3), ("Left Control", 0xE0), ("Left Shift", 0xE1),
     ("Return", 0x28), ("Escape", 0x29), ("Delete", 0x2A), ("Tab", 0x2B), ("Space", 0x2C),
     ("Up", 0x52), ("Down", 0x51), ("Left", 0x50), ("Right", 0x4F), ("Page Up", 0x4B), ("Page Down", 0x4E), ("Home key", 0x4A), ("End", 0x4D),
-].map { KeyOption(name: $0.0, usage: $0.1) }
-    + (1...12).map { KeyOption(name: "F\($0)", usage: UInt8(0x39 + $0)) }
-    + (13...24).map { KeyOption(name: "F\($0)", usage: UInt8(0x67 + $0 - 12)) }
-    + "ABCDEFGHIJKLMNOPQRSTUVWXYZ".enumerated().map { KeyOption(name: String($0.element), usage: UInt8(0x04 + $0.offset)) }
-    + (0...9).map { KeyOption(name: "\($0)", usage: $0 == 0 ? 0x27 : UInt8(0x1D + $0)) }
+]
+    var options = named.map { KeyOption(name: $0.0, usage: $0.1) }
+    for number in 1...12 { options.append(KeyOption(name: "F\(number)", usage: UInt8(0x39 + number))) }
+    for number in 13...24 { options.append(KeyOption(name: "F\(number)", usage: UInt8(0x67 + number - 12))) }
+    for (offset, letter) in "ABCDEFGHIJKLMNOPQRSTUVWXYZ".enumerated() {
+        options.append(KeyOption(name: String(letter), usage: UInt8(0x04 + offset)))
+    }
+    for number in 0...9 { options.append(KeyOption(name: "\(number)", usage: number == 0 ? 0x27 : UInt8(0x1D + number))) }
+    return options
+}()
 
 final class Controller: ObservableObject {
     @Published var connected = false
@@ -566,11 +572,15 @@ struct VoiceModeRadio: NSViewRepresentable {
 /// Prevent the system scroll-edge material from changing the top strip on hover.
 struct NoTopScrollEffect: ViewModifier {
     @ViewBuilder func body(content: Content) -> some View {
+        #if compiler(>=6.2)
         if #available(macOS 26.0, *) {
             content.scrollEdgeEffectHidden(true, for: .top)
         } else {
             content
         }
+        #else
+        content
+        #endif
     }
 }
 
@@ -633,6 +643,8 @@ struct ContentView: View {
     @StateObject var bluetooth = BluetoothProbe()
     @StateObject var handy = HandyBridge()
     @StateObject var apps = VoiceAppManager()
+    @StateObject private var loginItem = LoginItem()
+    @StateObject private var micInstaller = MicInstaller()
     /// True while a hold has started a direct-control recording that the release must stop.
     @State private var appRecording = false
     @State private var selected = "assistant"
@@ -647,6 +659,7 @@ struct ContentView: View {
                     connectionHeader
                     mappingSection
                     voiceSection
+                    generalSection
                     permissionsSection
                     DisclosureGroup {
                         VStack(alignment: .leading, spacing: 8) {
@@ -713,6 +726,35 @@ struct ContentView: View {
     private func refreshPermissions() {
         model.refreshPermissions()
         bluetooth.refreshPermissions()
+        loginItem.refresh()
+        micInstaller.refresh()
+    }
+
+    private var generalSection: some View {
+        SettingsCard(title: "General") {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Start at login").font(.subheadline.weight(.medium))
+                    Text("Open Vibote when you sign in to your Mac.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Toggle("Start at login", isOn: Binding(get: { loginItem.isRegistered }, set: { loginItem.setEnabled($0) }))
+                    .labelsHidden().toggleStyle(.switch)
+                    .accessibilityLabel("Start at login")
+            }
+            if loginItem.needsApproval {
+                HStack {
+                    Label("Allow Vibote in Login Items to finish setup.", systemImage: "exclamationmark.circle")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Settings…") { loginItem.openSettings() }.controlSize(.small)
+                }
+            }
+            if let error = loginItem.errorMessage {
+                Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled)
+            }
+        }
     }
 
     private var connectionHeader: some View {
@@ -768,7 +810,27 @@ struct ContentView: View {
                 }
             }
             Text(model.voiceMode.detail).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            if model.voiceMode == .voiceApp { voiceAppStatus }
+            if model.voiceMode == .voiceApp {
+                HStack {
+                    Label(micInstaller.installed ? "Vibote Mic installed" : "Install Vibote Mic for voice apps",
+                          systemImage: micInstaller.installed ? "checkmark.circle.fill" : "mic.badge.plus")
+                        .font(.caption).foregroundStyle(micInstaller.installed ? Color.green : Color.secondary)
+                    Spacer()
+                    if micInstaller.installing { ProgressView().controlSize(.small) }
+                    if !micInstaller.installed {
+                        Button(micInstaller.installing ? "Installing…" : "Install Vibote Mic") { micInstaller.install() }
+                            .controlSize(.small).disabled(micInstaller.installing || bluetooth.listening)
+                    }
+                }
+                if !micInstaller.installed {
+                    Text("Requires administrator approval and briefly restarts your Mac’s audio.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                if !micInstaller.message.isEmpty {
+                    Text(micInstaller.message).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+                }
+                voiceAppStatus
+            }
             Divider()
             HStack(spacing: 12) {
                 Image(systemName: "mic").foregroundStyle(.secondary)
