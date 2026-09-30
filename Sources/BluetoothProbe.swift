@@ -8,6 +8,9 @@ import Speech
 final class BluetoothProbe: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeripheralDelegate {
     @Published var lines = ["Remote microphone protocol not verified."]
     @Published var micStatus = "Not connected"
+    @Published private(set) var isConnecting = false
+    private let voiceServiceID = CBUUID(string: "AB5E0001-5A21-4F05-BC7D-AF01F617B664")
+    private let savedRemoteKey = "verifiedRemotePeripheralID"
     @Published var sampleCount = 0
     @Published var remoteTranscript = ""
     @Published var listening = false
@@ -44,7 +47,6 @@ final class BluetoothProbe: NSObject, ObservableObject, CBCentralManagerDelegate
     private var codec: UInt8 = 2
     private var negotiated = false
     private var openingMic = false
-    private var negotiationTimer: Timer?
     private var openingTimer: Timer?
     private var decoder = ADPCM()
     private var pending: [UInt8] = []
@@ -57,65 +59,117 @@ final class BluetoothProbe: NSObject, ObservableObject, CBCentralManagerDelegate
     private var timeout: Timer?
     func inspect() {
         guard !listening else { micStatus = "Stop the microphone before reconnecting."; return }
-        negotiationTimer?.invalidate()
+        guard !isConnecting else { return }
+        isConnecting = true
+        timeout?.invalidate()
         clearBattery()
         negotiated = false; version = nil; tx = nil; rx = nil; ctl = nil
         micStatus = "Connecting and checking microphone capabilities…"
-        lines = ["Inspecting remote Bluetooth services…"]
+        lines = []
+        note("Inspecting remote Bluetooth services…")
+        scheduleConnectionTimeout(seconds: 15, message: "Bluetooth did not become ready. Check Bluetooth permission and try Reconnect.")
         if central == nil { central = CBCentralManager(delegate: self, queue: .main) }
         else if central?.state == .poweredOn { discover() }
-        else { lines.append("Bluetooth unavailable or permission required.") }
+        else if let central { showUnavailableState(central.state) }
     }
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         refreshPermissions()
         if central.state == .poweredOn { discover() }
-        else { clearBattery(); lines.append("Bluetooth state: \(central.state.rawValue). Allow Bluetooth access in System Settings.") }
+        else {
+            clearBattery()
+            if listening { finish() }
+            showUnavailableState(central.state)
+        }
     }
     private func discover() {
         guard let central else { return }
-        let known = central.retrieveConnectedPeripherals(withServices: [CBUUID(string: "1812")])
-        if let device = known.first(where: { $0.name?.localizedCaseInsensitiveContains(supportedRemote.bluetoothName) == true }) { connect(device); return }
+        isConnecting = true
+        // macOS may not expose a paired keyboard through HID service retrieval.
+        // The remote's ATV voice service is a separate discovery route.
+        let known = central.retrieveConnectedPeripherals(withServices: [voiceServiceID, CBUUID(string: "1812")])
+        note("Connected voice/HID candidates: \(known.count)")
+        if let device = known.first(where: { matchesRemoteName($0.name, advertisedName: nil) }) { connect(device); return }
+        if let saved = UserDefaults.standard.string(forKey: savedRemoteKey), let id = UUID(uuidString: saved),
+           let device = central.retrievePeripherals(withIdentifiers: [id]).first {
+            note("Trying previously verified remote.")
+            connect(device)
+            return
+        }
         note("\(supportedRemote.name) not found among connected devices; scanning…")
         central.scanForPeripherals(withServices: nil)
-        timeout?.invalidate()
-        timeout = Timer.scheduledTimer(withTimeInterval: 15, repeats: false) { [weak self] _ in
-            self?.central?.stopScan(); self?.lines.append("Scan ended. Wake the remote and inspect again if nothing appeared.")
-            self?.micStatus = "Remote not found. Wake it and Inspect again."
+        micStatus = "Looking for your remote… Press a navigation button to wake it."
+        scheduleConnectionTimeout(seconds: 15, message: "Remote not found. Wake it, check Bluetooth pairing, then click Reconnect.")
+    }
+    private func showUnavailableState(_ state: CBManagerState) {
+        switch state {
+        case .poweredOn: discover()
+        case .poweredOff: failConnection("Bluetooth is off. Turn it on, then click Reconnect.")
+        case .unauthorized: failConnection("Allow Vibote Bluetooth access in System Settings, then click Reconnect.")
+        case .unsupported: failConnection("Bluetooth Low Energy is unavailable on this Mac.")
+        case .unknown, .resetting:
+            isConnecting = true
+            micStatus = "Waiting for Bluetooth…"
+            scheduleConnectionTimeout(seconds: 15, message: "Bluetooth did not become ready. Check permission and click Reconnect.")
+        @unknown default: failConnection("Bluetooth is unavailable. Try Reconnect.")
         }
+    }
+    private func scheduleConnectionTimeout(seconds: TimeInterval, message: String) {
+        timeout?.invalidate()
+        let timer = Timer(timeInterval: seconds, repeats: false) { [weak self] _ in
+            guard let self, self.isConnecting else { return }
+            self.failConnection(message)
+        }
+        timeout = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+    private func failConnection(_ message: String) {
+        timeout?.invalidate()
+        central?.stopScan()
+        isConnecting = false; negotiated = false
+        note(message)
+        micStatus = message
+        if let remote, remote.state == .connecting { central?.cancelPeripheralConnection(remote) }
     }
     private func connect(_ device: CBPeripheral) {
         central?.stopScan(); timeout?.invalidate(); remote = device; device.delegate = self
-        lines.append("Found \(device.name ?? supportedRemote.name). Connecting for service discovery…")
+        note("Found \(device.name ?? supportedRemote.name). Connecting for service discovery…")
+        micStatus = "Checking the remote’s microphone services…"
         if device.state == .connected { device.discoverServices(nil) }
         else { central?.connect(device) }
-        // CoreBluetooth connection attempts never time out on their own; a sleeping remote would leave inspection stuck.
-        timeout = Timer.scheduledTimer(withTimeInterval: 10, repeats: false) { [weak self] _ in
-            guard let self, self.version == nil, !self.negotiated else { return }
-            if device.state != .connected { self.central?.cancelPeripheralConnection(device) }
-            self.note("Connection timed out (state \(device.state.rawValue)).")
-            self.micStatus = "Remote did not respond. Press any remote button to wake it, then Inspect again."
-        }
+        scheduleConnectionTimeout(seconds: 10, message: "Remote did not respond. Wake it with a navigation button, then click Reconnect.")
     }
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
-        if peripheral.name?.localizedCaseInsensitiveContains(supportedRemote.bluetoothName) == true { connect(peripheral) }
+        guard isConnecting else { return }
+        if matchesRemoteName(peripheral.name, advertisedName: advertisementData[CBAdvertisementDataLocalNameKey] as? String) { connect(peripheral) }
     }
-    func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) { peripheral.discoverServices(nil) }
+    func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
+        guard peripheral == remote, isConnecting else { return }
+        peripheral.discoverServices(nil)
+    }
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
+        guard peripheral == remote else { return }
+        timeout?.invalidate(); isConnecting = false
         clearBattery()
         finish(); tx = nil; rx = nil; ctl = nil; version = nil; negotiated = false
-        micStatus = "Remote disconnected. Inspect services to reconnect."
+        micStatus = "Remote disconnected. Wake it, then click Reconnect."
     }
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
+        guard peripheral == remote, isConnecting else { return }
         clearBattery()
-        timeout?.invalidate(); lines.append(error?.localizedDescription ?? "Connection failed")
-        micStatus = "Connection failed. Wake the remote and Inspect again."
+        failConnection("Connection failed. Wake the remote and click Reconnect. " + (error?.localizedDescription ?? ""))
     }
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
-        if let error { lines.append(error.localizedDescription); return }
+        guard peripheral == remote, isConnecting else { return }
+        if let error { failConnection("Could not read microphone services: " + error.localizedDescription); return }
+        guard peripheral.services?.contains(where: { $0.uuid == voiceServiceID }) == true else {
+            failConnection("This remote did not expose its microphone service. Wake it and click Reconnect.")
+            return
+        }
         for service in peripheral.services ?? [] { lines.append("Service \(service.uuid)"); peripheral.discoverCharacteristics(nil, for: service) }
     }
     func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
-        if let error { lines.append(error.localizedDescription); return }
+        guard peripheral == remote, isConnecting || version != nil else { return }
+        if let error { failConnection("Could not read microphone controls: " + error.localizedDescription); return }
         for characteristic in service.characteristics ?? [] {
             lines.append("  \(characteristic.uuid) properties=\(characteristic.properties.rawValue)")
             if service.uuid == batteryServiceID && characteristic.uuid == batteryLevelID {
@@ -168,18 +222,15 @@ final class BluetoothProbe: NSObject, ObservableObject, CBCentralManagerDelegate
         // Request legacy on-demand interaction: inspection never opens the mic.
         micStatus = "Checking remote microphone capabilities…"
         send([0x0a, 0x01, 0x00, 0x00, 0x03, 0x00])
-        negotiationTimer?.invalidate()
-        negotiationTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: false) { [weak self] _ in
-            guard let self, self.version == nil else { return }
-            self.negotiated = false
-            self.micStatus = "No capability reply. Wake the remote and click Inspect Bluetooth services again."
-        }
+        scheduleConnectionTimeout(seconds: 5, message: "No microphone capability reply. Wake the remote and click Reconnect.")
     }
     func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
-        if let error { note("Notify error: " + error.localizedDescription); return }
+        guard peripheral == remote, isConnecting else { return }
+        if let error { failConnection("Could not enable microphone notifications: " + error.localizedDescription); return }
         negotiateIfReady()
     }
     func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
+        guard peripheral == remote else { return }
         if characteristic.service?.uuid == batteryServiceID && characteristic.uuid == batteryLevelID {
             guard peripheral == remote else { return }
             batteryPercentage = error == nil ? remoteBatteryPercentage(characteristic.value) : nil
@@ -192,14 +243,16 @@ final class BluetoothProbe: NSObject, ObservableObject, CBCentralManagerDelegate
             guard let op = bytes.first else { return }
             switch op {
             case 0x0b:
-                negotiationTimer?.invalidate()
-                guard bytes.count >= 5 else { return }
+                guard isConnecting else { return }
+                guard bytes.count >= 5 else { failConnection("Incomplete microphone capability reply. Try Reconnect."); return }
                 let value = UInt16(bytes[1]) << 8 | UInt16(bytes[2])
-                guard value == 4 || value == 0x100 else { micStatus = "Unsupported ATV version \(value)"; return }
+                guard value == 4 || value == 0x100 else { failConnection("Unsupported ATV version \(value)"); return }
                 // v0.4 has a two-byte codec mask; v1.0 a one-byte mask.
                 let mask = value == 4 ? bytes[4] : bytes[3]
-                guard mask & 3 != 0 else { micStatus = "No supported ADPCM codec advertised"; return }
+                guard mask & 3 != 0 else { failConnection("No supported ADPCM codec advertised"); return }
                 if value == 4 && (bytes.count < 7 || (Int(bytes[5]) << 8 | Int(bytes[6])) != 134) { micStatus = "Unsupported legacy audio frame size"; return }
+                timeout?.invalidate(); isConnecting = false
+                UserDefaults.standard.set(peripheral.identifier.uuidString, forKey: savedRemoteKey)
                 version = value; codec = mask & 2 != 0 ? 2 : 1; rate = codec == 2 ? 16000 : 8000
                 micStatus = "Remote mic ready · ATV \(value == 4 ? "0.4" : "1.0") · \(Int(rate)) Hz · test required"
             case 0x04:
