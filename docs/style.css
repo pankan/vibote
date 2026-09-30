@@ -1560,6 +1560,11 @@ main {
   .source-build { grid-column:auto; }
   .section-heading { grid-template-columns:1fr; }
   .section-heading>p:last-child { justify-self:start; }
+  .app-heading { flex-direction:column; align-items:flex-start; gap:18px; }
+  .app-heading h2 { font-size:clamp(40px,9vw,56px); }
+  .voice-apps { flex-direction:column; align-items:flex-start; gap:14px; }
+  .voice-apps>span { font-size:9px; }
+  .voice-apps>div { flex-wrap:wrap; gap:8px 16px; }
   .hardware-specs { flex-wrap:wrap; }
   .hero-note,.stage-caption-detail,.callout-label,.hero-bottom,.voice-demo-note { font-size:9px; }
 }
