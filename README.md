@@ -24,7 +24,7 @@ These are the cheapest listings we found as of 30 September 2026: [Amazon India 
 
 Requires macOS 14 or later. Supports Apple silicon and Intel Macs.
 
-1. [Download Vibote.dmg](docs/downloads/Vibote.dmg?raw=true) and open it.
+1. [Download Vibote.dmg](https://github.com/pankan/vibote/releases/latest/download/Vibote.dmg) and open it.
 2. Drag **Vibote.app** into **Applications**, eject the disk image, and open Vibote from Applications.
 3. Pair the remote in **System Settings → Bluetooth** and follow Vibote's **Permissions** panel.
 4. Hold **Assistant** and speak. By default the text is transcribed on-device and typed into the focused app.
@@ -46,13 +46,13 @@ For development, install the Xcode command-line tools, then:
 open build/Vibote.app
 ```
 
-To rebuild the DMG and update the website download:
+To build a versioned release DMG:
 
 ```sh
-./scripts/create-dmg.sh          # build/Vibote.dmg and docs/downloads/Vibote.dmg
+./scripts/create-dmg.sh          # build/Vibote-VERSION.dmg and checksum
 ```
 
-The DMG opens with a branded background, large icons, and a drag-to-Applications guide. It includes the app and its bundled microphone driver; license and installation text are in the hidden `.Installation` folder. Its checksum is in `docs/downloads/Vibote.dmg.sha256`. Packaging uses Python 3 and installs the pinned `dmgbuild` tool into `.build/dmg-tools` on the first run.
+The DMG opens with a branded background, large icons, and a drag-to-Applications guide. It includes the app and its bundled microphone driver; license and installation text are in the hidden `.Installation` folder. Local checksums are written beside the versioned DMG in `build/`; published releases include `SHA256SUMS.txt`. Packaging uses Python 3 and installs the pinned `dmgbuild` tool into `.build/dmg-tools` on the first run.
 
 ## Landing page
 
@@ -62,7 +62,7 @@ The static landing page lives in `docs/`. Preview it locally:
 python3 -m http.server 8080 --directory docs
 ```
 
-Then open `http://localhost:8080`. It has no build step or external dependencies. To publish with GitHub Pages, choose **Deploy from a branch → main → /docs** in the repository's Pages settings.
+Then open `http://localhost:8080`. It has no build step; the page loads DM Sans from Google Fonts. The GitHub Pages workflow deploys `docs/` from `main` after Pages is configured to use **GitHub Actions**. The public URL is [pankan.github.io/vibote](https://pankan.github.io/vibote/).
 
 ## Default mapping
 
@@ -148,9 +148,15 @@ Plain keyboard-key remaps need none of these. The build is ad-hoc signed, so mac
 ## Verification
 
 ```sh
-xcrun swiftc -module-cache-path .build/module-cache Sources/ADPCM.swift Tests/DecoderChecks.swift -o .build/decoder-checks
-.build/decoder-checks
+./scripts/check.sh
+./scripts/build.sh
 ```
+
+## Contributing and releases
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development, [CHANGELOG.md](CHANGELOG.md) for versions, and [the release guide](maintenance/RELEASING.md) for publishing. Report vulnerabilities privately using [SECURITY.md](SECURITY.md). Read [PRIVACY.md](PRIVACY.md) for local storage and voice handling.
+
+The first release is early software. Automated checks do not replace testing Bluetooth, permissions, and audio with a physical remote.
 
 ## License
 

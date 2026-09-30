@@ -566,11 +566,15 @@ struct VoiceModeRadio: NSViewRepresentable {
 /// Prevent the system scroll-edge material from changing the top strip on hover.
 struct NoTopScrollEffect: ViewModifier {
     @ViewBuilder func body(content: Content) -> some View {
+        #if compiler(>=6.2)
         if #available(macOS 26.0, *) {
             content.scrollEdgeEffectHidden(true, for: .top)
         } else {
             content
         }
+        #else
+        content
+        #endif
     }
 }
 

@@ -42,8 +42,7 @@ xcrun swiftc -module-cache-path "$PWD/.build/module-cache" scripts/dmg-backgroun
 .build/dmg-background "$PWD/.build/dmg-background.tiff"
 .build/dmg-tools/bin/dmgbuild -D root="$PWD" -s scripts/dmg-settings.py Vibote "$PWD/build/Vibote.dmg"
 /usr/bin/hdiutil verify "$PWD/build/Vibote.dmg"
-mkdir -p docs/downloads
-cp build/Vibote.dmg docs/downloads/Vibote.dmg.tmp
-mv docs/downloads/Vibote.dmg.tmp docs/downloads/Vibote.dmg
-(cd docs/downloads && shasum -a 256 Vibote.dmg > Vibote.dmg.sha256)
-printf 'Created %s\n' "$PWD/build/Vibote.dmg"
+VERSION=$(python3 scripts/version.py)
+cp build/Vibote.dmg "build/Vibote-$VERSION.dmg"
+(cd build && shasum -a 256 "Vibote-$VERSION.dmg" > "Vibote-$VERSION.dmg.sha256")
+printf 'Created %s\n' "$PWD/build/Vibote-$VERSION.dmg"

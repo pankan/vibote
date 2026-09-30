@@ -34,22 +34,34 @@ final class HandyBridge: ObservableObject {
     /// Installs Handy with Homebrew (`brew install --cask handy`), or opens the download page without Homebrew.
     func install() {
         guard let brew = brewPath else { NSWorkspace.shared.open(Self.downloadPage); message = "Download Handy from handy.computer, then come back."; return }
+        guard !installing else { return }
         installing = true; message = "Installing Handy with Homebrew…"
         let task = Process()
         task.executableURL = URL(fileURLWithPath: brew)
         task.arguments = ["install", "--cask", "handy"]
         let pipe = Pipe(); task.standardOutput = pipe; task.standardError = pipe
-        task.terminationHandler = { [weak self] process in
-            let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-            DispatchQueue.main.async {
-                guard let self else { return }
-                self.installing = false
-                self.refresh()
-                if process.terminationStatus == 0 && self.installed { self.message = "Handy installed. Open it once to download a model."; self.open(showWindow: true) }
-                else { self.message = "Install failed: " + (output.split(separator: "\n").last.map(String.init) ?? "exit \(process.terminationStatus)") }
+        // Drain while the process runs: waiting for termination before reading can
+        // deadlock if Homebrew fills the pipe buffer.
+        do {
+            try task.run()
+            DispatchQueue.global(qos: .utility).async { [weak self] in
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                task.waitUntilExit()
+                let output = String(decoding: data, as: UTF8.self)
+                let status = task.terminationStatus
+                DispatchQueue.main.async {
+                    guard let self else { return }
+                    self.installing = false
+                    self.refresh()
+                    if status == 0 && self.installed {
+                        self.message = "Handy installed. Open it once to download a model."
+                        self.open(showWindow: true)
+                    } else {
+                        self.message = "Install failed: " + (output.split(separator: "\n").last.map(String.init) ?? "exit \(status)")
+                    }
+                }
             }
-        }
-        do { try task.run() } catch { installing = false; message = error.localizedDescription }
+        } catch { installing = false; message = error.localizedDescription }
     }
 
     /// Launches Handy (hidden unless `showWindow`) so it can receive toggles and keep its model loaded.

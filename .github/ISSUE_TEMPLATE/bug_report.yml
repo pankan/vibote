@@ -1,0 +1,29 @@
+name: Bug report
+description: Report a reproducible problem with Vibote.
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Vibote version
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: macOS version, Mac chip, and remote model
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: What happened?
+      description: Include steps, expected behavior, and actual behavior. Remove private text from screenshots and logs.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Optional diagnostics
+      description: Review logs before sharing. Never attach recordings or dictated private text.

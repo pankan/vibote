@@ -1,0 +1,27 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    name: Build and checks
+    runs-on: macos-14
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - run: ./scripts/check.sh
+      - run: ./scripts/build.sh
+      - name: Verify signed universal bundles
+        run: |
+          codesign --verify --deep --strict build/Vibote.app
+          lipo -verify_arch arm64 x86_64 build/Vibote.app/Contents/MacOS/Vibote
+          lipo -verify_arch arm64 x86_64 build/Vibote.app/Contents/Resources/ViboteMic.driver/Contents/MacOS/ViboteMic

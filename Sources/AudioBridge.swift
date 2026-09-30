@@ -18,8 +18,9 @@ final class AudioBridge {
     func start(rate: Double) throws {
         stop()
         var address = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyTranslateUIDToDevice, mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain)
-        var uid = Self.deviceUID, found = AudioObjectID(kAudioObjectUnknown), size = UInt32(MemoryLayout<AudioObjectID>.size)
-        let status = AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, UInt32(MemoryLayout<CFString>.size), &uid, &size, &found)
+        var uid = Unmanaged.passUnretained(Self.deviceUID).toOpaque()
+        var found = AudioObjectID(kAudioObjectUnknown), size = UInt32(MemoryLayout<AudioObjectID>.size)
+        let status = AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, UInt32(MemoryLayout<UnsafeMutableRawPointer>.size), &uid, &size, &found)
         guard status == noErr, found != kAudioObjectUnknown else {
             throw NSError(domain: "Vibote", code: 1, userInfo: [NSLocalizedDescriptionKey: "Vibote Mic isn't available. Use Install Vibote Mic in the Voice panel, then try again."])
         }

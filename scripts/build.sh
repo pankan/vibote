@@ -7,9 +7,11 @@ for ARCH in arm64 x86_64; do
 done
 xcrun lipo -create .build/Vibote-arm64 .build/Vibote-x86_64 -output .build/Vibote
 APP="$PWD/build/Vibote.app"
+rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS"
 cp .build/Vibote "$APP/Contents/MacOS/Vibote"
 cp Info.plist "$APP/Contents/Info.plist"
+python3 scripts/version.py --stamp "$APP/Contents/Info.plist"
 mkdir -p "$APP/Contents/Resources"
 ./scripts/build-mic.sh
 rm -rf "$APP/Contents/Resources/ViboteMic.driver"
