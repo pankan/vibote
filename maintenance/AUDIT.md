@@ -18,7 +18,7 @@ Scope: tracked source, reachable local Git history, build and DMG scripts, websi
 
 A pattern scan of reachable text history found no matches for private keys, common GitHub/AWS tokens, or quoted credential assignments. Binary assets were not covered by that text scan. The removed peripheral UUID and old builds remain in earlier history; the UUID is a local Bluetooth identifier, not a credential. No history rewrite was performed.
 
-The repository was private during the audit. Description, homepage, topics, squash-only merging, automatic merged-branch deletion, and read-only default Actions permissions were configured. Branch protection and private vulnerability reporting must be enabled after public visibility is approved; the current private plan does not provide them. The intended protection payload is checked in.
+The repository was initially private and was made public with the maintainer’s explicit approval during this audit. Description, homepage, topics, squash-only merging, automatic merged-branch deletion, read-only default Actions permissions, main branch protection, private vulnerability reporting, secret scanning/push protection, and GitHub Pages were configured. The protection payload is checked in. Pages deployment still requires the workflow to reach main.
 
 ## Verification and limitations
 
