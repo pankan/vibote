@@ -21,7 +21,4 @@ jobs:
       - run: ./scripts/check.sh
       - run: ./scripts/build.sh
       - name: Verify signed universal bundles
-        run: |
-          codesign --verify --deep --strict build/Vibote.app
-          lipo build/Vibote.app/Contents/MacOS/Vibote -verify_arch arm64 x86_64
-          lipo build/Vibote.app/Contents/Resources/ViboteMic.driver/Contents/MacOS/ViboteMic -verify_arch arm64 x86_64
+        run: python3 scripts/check-bundle.py

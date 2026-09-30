@@ -31,6 +31,7 @@ jobs:
           fi
       - run: ./scripts/check.sh
       - run: ./scripts/create-dmg.sh
+      - run: python3 scripts/check-bundle.py
       - name: Prepare download names and checksums
         run: |
           VERSION=$(python3 scripts/version.py)

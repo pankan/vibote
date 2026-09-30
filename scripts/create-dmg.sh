@@ -7,6 +7,7 @@ case "${1:-}" in
   --skip-build) test -d build/Vibote.app || { echo "Build Vibote first." >&2; exit 1; } ;;
   *) echo "Usage: $0 [--skip-build]" >&2; exit 1 ;;
 esac
+python3 scripts/check-bundle.py
 STAGING="$PWD/.build/dmg-staging"
 rm -rf "$STAGING"
 mkdir -p "$STAGING/.Installation"
