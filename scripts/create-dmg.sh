@@ -39,7 +39,7 @@ if [[ ! -x .build/dmg-tools/bin/dmgbuild ]]; then
   python3 -m venv .build/dmg-tools
   .build/dmg-tools/bin/python -m pip install 'dmgbuild==1.6.7'
 fi
-xcrun swiftc -module-cache-path "$PWD/.build/module-cache" scripts/dmg-background.swift -o .build/dmg-background
+xcrun swiftc -swift-version 5 -target "$(uname -m)-apple-macos14.0" -module-cache-path "$PWD/.build/module-cache" scripts/dmg-background.swift -o .build/dmg-background
 .build/dmg-background "$PWD/.build/dmg-background.tiff"
 .build/dmg-tools/bin/dmgbuild -D root="$PWD" -s scripts/dmg-settings.py Vibote "$PWD/build/Vibote.dmg"
 /usr/bin/hdiutil verify "$PWD/build/Vibote.dmg"
