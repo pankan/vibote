@@ -3,7 +3,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p .build/module-cache
-for pair in 'ADPCM DecoderChecks' 'BatteryLevel BatteryLevelChecks' 'MicrophoneErrors MicrophoneErrorChecks'; do
+for pair in 'ADPCM DecoderChecks' 'BatteryLevel BatteryLevelChecks' 'MicrophoneErrors MicrophoneErrorChecks' 'RemoteDiscovery RemoteDiscoveryChecks'; do
   read -r source test <<< "$pair"
   xcrun swiftc -module-cache-path "$PWD/.build/module-cache" "Sources/$source.swift" "Tests/$test.swift" -o ".build/$test"
   ".build/$test"

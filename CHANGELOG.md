@@ -1,6 +1,12 @@
 # Changelog
 
-## 0.1.0 — Unreleased
+## 0.1.1 — 2026-09-30
+
+- Find paired remotes through their voice service as well as HID; remember verified remotes locally.
+- Show bounded Bluetooth connection states and a Reconnect button.
+- Allow reinstalling the bundled microphone driver from the app.
+
+## 0.1.0 — Superseded by 0.1.1 (never published)
 
 Initial public release candidate:
 

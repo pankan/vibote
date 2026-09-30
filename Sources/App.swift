@@ -693,6 +693,7 @@ struct ContentView: View {
                 let app = model.voiceApp
                 if down {
                     bluetooth.beginHold(transcribe: false)
+                    guard bluetooth.listening else { return }
                     switch app.control {
                     case .handy: appRecording = handy.toggle()
                     case .deepLink(let start, _): apps.open(start); appRecording = true
@@ -817,10 +818,8 @@ struct ContentView: View {
                         .font(.caption).foregroundStyle(micInstaller.installed ? Color.green : Color.secondary)
                     Spacer()
                     if micInstaller.installing { ProgressView().controlSize(.small) }
-                    if !micInstaller.installed {
-                        Button(micInstaller.installing ? "Installing…" : "Install Vibote Mic") { micInstaller.install() }
-                            .controlSize(.small).disabled(micInstaller.installing || bluetooth.listening)
-                    }
+                    Button(micInstaller.installing ? "Installing…" : (micInstaller.installed ? "Reinstall…" : "Install Vibote Mic")) { micInstaller.install() }
+                        .controlSize(.small).disabled(micInstaller.installing || bluetooth.listening)
                 }
                 if !micInstaller.installed {
                     Text("Requires administrator approval and briefly restarts your Mac’s audio.")
@@ -837,7 +836,12 @@ struct ContentView: View {
                 LevelMeter(level: bluetooth.level)
                 Text(bluetooth.listening ? "Listening" : "Mic idle").font(.caption).foregroundStyle(.secondary).frame(width: 55, alignment: .trailing)
             }
-            Text(bluetooth.micStatus).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            HStack(alignment: .top) {
+                Text(bluetooth.micStatus).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                Spacer()
+                Button(bluetooth.isConnecting ? "Connecting…" : "Reconnect") { bluetooth.inspect() }
+                    .controlSize(.small).disabled(bluetooth.isConnecting || bluetooth.listening)
+            }
         }
     }
 
