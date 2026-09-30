@@ -1547,3 +1547,28 @@ main {
   .hero h1 { font-size:clamp(51px,10.8vw,82px); letter-spacing:-.06em; }
   .hero h1 .heading-accent { letter-spacing:inherit; }
 }
+
+/* Phones and small tablets: stack multi-column sections so text keeps a readable measure. */
+@media(max-width:800px) {
+  .feature-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .hardware,.remote-request,.setup,.faq { grid-template-columns:1fr; row-gap:40px; }
+  .setup,.faq { padding-block:70px; }
+  .setup-intro>p:not(.eyebrow) { max-width:none; }
+  .capability-strip>.wrap { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px 20px; }
+  .feature-top .eyebrow { font-size:9px; }
+  .shortcut-options button { font-size:11px; padding:9px 8px; }
+  .source-build { grid-column:auto; }
+  .section-heading { grid-template-columns:1fr; }
+  .section-heading>p:last-child { justify-self:start; }
+  .hardware-specs { flex-wrap:wrap; }
+  .hero-note,.stage-caption-detail,.callout-label,.hero-bottom,.voice-demo-note { font-size:9px; }
+}
+@media(max-width:600px) {
+  .feature-grid { grid-template-columns:1fr; }
+  .hardware-copy h2,.setup-intro h2 { font-size:42px; }
+  .open-source { flex-direction:column; align-items:flex-start; padding:40px 26px; }
+  .open-source h2 { font-size:44px; }
+  .site-footer { flex-wrap:wrap; row-gap:14px; }
+  .site-footer>span { font-size:9px; flex:1 1 60%; text-align:right; }
+  .site-footer>div { flex:1 1 100%; flex-wrap:wrap; gap:12px 22px; }
+}
