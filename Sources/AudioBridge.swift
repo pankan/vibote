@@ -21,7 +21,7 @@ final class AudioBridge {
         var uid = Self.deviceUID, found = AudioObjectID(kAudioObjectUnknown), size = UInt32(MemoryLayout<AudioObjectID>.size)
         let status = AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, UInt32(MemoryLayout<CFString>.size), &uid, &size, &found)
         guard status == noErr, found != kAudioObjectUnknown else {
-            throw NSError(domain: "Vibote", code: 1, userInfo: [NSLocalizedDescriptionKey: "Vibote Mic isn't installed. Run scripts/install-mic.sh."])
+            throw NSError(domain: "Vibote", code: 1, userInfo: [NSLocalizedDescriptionKey: "Vibote Mic isn't available. Use Install Vibote Mic in the Voice panel, then try again."])
         }
         device = found; inputRate = rate
         var id: AudioDeviceIOProcID?

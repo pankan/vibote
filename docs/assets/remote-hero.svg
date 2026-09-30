@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="840" viewBox="0 0 280 840" fill="none">
+  <defs>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2=".2"><stop stop-color="#7a787f"/><stop offset=".15" stop-color="#3c3b41"/><stop offset=".6" stop-color="#17171b"/><stop offset="1" stop-color="#08080a"/></linearGradient>
+    <linearGradient id="shell" x1="0" y1="0" x2="1" y2=".5"><stop stop-color="#48474d"/><stop offset=".25" stop-color="#35343a"/><stop offset=".7" stop-color="#29282e"/><stop offset="1" stop-color="#1d1c21"/></linearGradient>
+    <linearGradient id="purple" x1="0" y1="0" x2=".6" y2="1"><stop stop-color="#8b40dd"/><stop offset=".35" stop-color="#7028c0"/><stop offset="1" stop-color="#48158e"/></linearGradient>
+    <linearGradient id="key" x1="0" y1="0" x2=".7" y2="1"><stop stop-color="#504f54"/><stop offset="1" stop-color="#27262b"/></linearGradient>
+    <filter id="key-depth" x="-20%" y="-20%" width="150%" height="150%"><feDropShadow dx="2" dy="4" stdDeviation="2" flood-color="#000" flood-opacity=".65"/></filter>
+  </defs>
+  <rect x="3" y="3" width="274" height="834" rx="63" fill="url(#rim)" stroke="#151517" stroke-width="6"/>
+  <rect x="12" y="12" width="256" height="816" rx="55" fill="url(#shell)" stroke="#48484A" stroke-width="2"/>
+  <g stroke="#171719" stroke-width="3" filter="url(#key-depth)">
+    <circle cx="78" cy="80" r="34" fill="url(#purple)"/>
+    <circle cx="202" cy="80" r="34" fill="url(#purple)"/>
+    <rect x="47" y="150" width="186" height="184" rx="48" fill="url(#purple)"/>
+    <circle cx="78" cy="391" r="33" fill="url(#key)"/>
+    <circle cx="202" cy="391" r="33" fill="url(#key)"/>
+    <circle cx="78" cy="479" r="33" fill="url(#key)"/>
+    <circle cx="78" cy="567" r="33" fill="url(#key)"/>
+    <rect x="169" y="446" width="66" height="154" rx="33" fill="url(#key)"/>
+  </g>
+  <rect x="138" y="72" width="4" height="16" rx="2" fill="#080809"/>
+  <circle cx="140" cy="121" r="2" fill="#080809"/>
+  <g stroke="#F5F1FC" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M78 63v16m-9-11a17 17 0 1 0 18 0"/>
+    <rect x="194" y="71" width="16" height="22" rx="7"/><path d="M202 64v16m-8-1h16m-22-5-3 11m31-11 3 11m-37-14-3 16m43-16 3 16"/>
+    <path d="M124 159h32q14 0 14 14v29q0 12 12 12h28q14 0 14 14v28q0 14-14 14h-28q-12 0-12 12v29q0 14-14 14h-32q-14 0-14-14v-29q0-12-12-12H70q-14 0-14-14v-28q0-14 14-14h28q12 0 12-12v-29q0-14 14-14Z"/>
+    <path d="m140 174-9 13h18Zm0 136-9-13h18ZM73 242l13-9v18Zm134 0-13-9v18Z"/>
+    <path d="m191 390 11-11 11 11v15h-8v-10h-6v10h-8Z"/>
+    <path d="m70 471-9 7 9 7m-7-7h22q13 0 13 9t-13 9H69"/>
+    <path d="M66 559h24m-24 8h24m-24 8h24"/>
+    <circle cx="202" cy="479" r="26"/><path d="M202 468v22m-11-11h22"/>
+    <circle cx="202" cy="567" r="26"/><path d="M191 567h22"/>
+  </g>
+  <rect x="123" y="225" width="34" height="34" rx="10" fill="url(#purple)" stroke="#171719" stroke-width="2.5"/>
+  <text x="140" y="247" text-anchor="middle" fill="#F5F1FC" font-family="monospace" font-size="15" font-weight="500">OK</text>
+  <g fill="#F5F1FC"><circle cx="71" cy="386" r="8"/><circle cx="86" cy="391" r="4"/><circle cx="85" cy="402" r="5"/><circle cx="92" cy="383" r="2"/></g>
+</svg>

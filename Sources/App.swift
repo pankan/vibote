@@ -633,6 +633,8 @@ struct ContentView: View {
     @StateObject var bluetooth = BluetoothProbe()
     @StateObject var handy = HandyBridge()
     @StateObject var apps = VoiceAppManager()
+    @StateObject private var loginItem = LoginItem()
+    @StateObject private var micInstaller = MicInstaller()
     /// True while a hold has started a direct-control recording that the release must stop.
     @State private var appRecording = false
     @State private var selected = "assistant"
@@ -647,6 +649,7 @@ struct ContentView: View {
                     connectionHeader
                     mappingSection
                     voiceSection
+                    generalSection
                     permissionsSection
                     DisclosureGroup {
                         VStack(alignment: .leading, spacing: 8) {
@@ -713,6 +716,35 @@ struct ContentView: View {
     private func refreshPermissions() {
         model.refreshPermissions()
         bluetooth.refreshPermissions()
+        loginItem.refresh()
+        micInstaller.refresh()
+    }
+
+    private var generalSection: some View {
+        SettingsCard(title: "General") {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Start at login").font(.subheadline.weight(.medium))
+                    Text("Open Vibote when you sign in to your Mac.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Toggle("Start at login", isOn: Binding(get: { loginItem.isRegistered }, set: { loginItem.setEnabled($0) }))
+                    .labelsHidden().toggleStyle(.switch)
+                    .accessibilityLabel("Start at login")
+            }
+            if loginItem.needsApproval {
+                HStack {
+                    Label("Allow Vibote in Login Items to finish setup.", systemImage: "exclamationmark.circle")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Settings…") { loginItem.openSettings() }.controlSize(.small)
+                }
+            }
+            if let error = loginItem.errorMessage {
+                Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled)
+            }
+        }
     }
 
     private var connectionHeader: some View {
@@ -768,7 +800,27 @@ struct ContentView: View {
                 }
             }
             Text(model.voiceMode.detail).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            if model.voiceMode == .voiceApp { voiceAppStatus }
+            if model.voiceMode == .voiceApp {
+                HStack {
+                    Label(micInstaller.installed ? "Vibote Mic installed" : "Install Vibote Mic for voice apps",
+                          systemImage: micInstaller.installed ? "checkmark.circle.fill" : "mic.badge.plus")
+                        .font(.caption).foregroundStyle(micInstaller.installed ? Color.green : Color.secondary)
+                    Spacer()
+                    if micInstaller.installing { ProgressView().controlSize(.small) }
+                    if !micInstaller.installed {
+                        Button(micInstaller.installing ? "Installing…" : "Install Vibote Mic") { micInstaller.install() }
+                            .controlSize(.small).disabled(micInstaller.installing || bluetooth.listening)
+                    }
+                }
+                if !micInstaller.installed {
+                    Text("Requires administrator approval and briefly restarts your Mac’s audio.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                if !micInstaller.message.isEmpty {
+                    Text(micInstaller.message).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+                }
+                voiceAppStatus
+            }
             Divider()
             HStack(spacing: 12) {
                 Image(systemName: "mic").foregroundStyle(.secondary)
