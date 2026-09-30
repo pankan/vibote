@@ -101,16 +101,10 @@ if ('IntersectionObserver' in window && !motionPreference.matches) {
   });
 }
 
-const motionButton = document.getElementById('motion-toggle');
-function setMotionPaused(paused) {
-  stage.classList.toggle('motion-paused', paused);
-  motionButton.setAttribute('aria-pressed', String(paused));
-  motionButton.textContent = paused ? 'Resume motion' : 'Pause motion';
-  motionButton.hidden = motionPreference.matches;
-}
-motionButton.addEventListener('click', () => setMotionPaused(!stage.classList.contains('motion-paused')));
-motionPreference.addEventListener('change', () => {
-  setMotionPaused(motionPreference.matches);
+// Respect the system Reduce Motion setting.
+function syncMotionPreference() {
+  stage.classList.toggle('motion-paused', motionPreference.matches);
   if (motionPreference.matches) stopVoiceDemo();
-});
-setMotionPaused(motionPreference.matches);
+}
+motionPreference.addEventListener('change', syncMotionPreference);
+syncMotionPreference();
