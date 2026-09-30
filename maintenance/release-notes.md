@@ -15,4 +15,12 @@ Both DMG filenames contain the same app. `Vibote.dmg` is the stable website down
 
 Only the documented T6 remote is supported initially. Firmware variants, on-device language availability, and third-party voice app behavior can differ. See the changelog and README for details.
 
-User-reported testing: remote dictation, AI voice apps, in-app Vibote Mic installation, and start at login work on macOS 27 with an M3 Pro. Intel and macOS 14 runtime testing have not been completed. The release-readiness changes still need a final hardware smoke test.
+User-reported testing: remote dictation, AI voice apps, in-app Vibote Mic installation, and start at login work on macOS 27 with an M3 Pro. Intel and macOS 14 runtime testing have not been completed.
+
+## What's new in 0.1.1
+
+- Finds paired remotes through their voice service as well as the keyboard service, and remembers verified remotes locally (fixes getting stuck at "checking microphone capabilities").
+- Bounded Bluetooth connection states with a Reconnect button.
+- Reinstall the bundled Vibote Mic driver from the app.
+
+Version 0.1.1 was hardware-tested for remote connection and microphone on macOS 27 with an M3 Pro.
