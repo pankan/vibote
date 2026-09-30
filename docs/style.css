@@ -90,14 +90,6 @@ h1,h2,h3,p {
 .brand img {
   border-radius:9px;
 }
-.brand-tag {
-  font:8px var(--mono);
-  letter-spacing:1px;
-  color:var(--muted);
-  border-left:1px solid #cccac1;
-  padding-left:15px;
-  margin-left:12px;
-}
 .site-header nav {
   display:flex;
   align-items:center;
@@ -1280,9 +1272,6 @@ h2 {
   .site-header nav {
     gap:22px;
   }
-  .brand-tag {
-    display:none;
-  }
 }
 @media(max-width:800px) {
   .wrap {
@@ -1389,12 +1378,6 @@ h2 {
 main {
   overflow:clip;
 }
-.stage-controls .motion-toggle {
-  font-size:8px;
-  padding:9px 10px;
-  border-color:transparent;
-  color:#897a94;
-}
 .motion-paused .remote-float {
   animation-play-state:paused;
 }
@@ -1416,9 +1399,6 @@ main {
 .hero-copy>.eyebrow {
   font-size:10px;
 }
-.brand-tag {
-  font-size:9px;
-}
 .stage-caption {
   font-size:9px;
 }
@@ -1436,9 +1416,6 @@ main {
 }
 .stage-controls button {
   font-size:11px;
-}
-.stage-controls .motion-toggle {
-  font-size:10px;
 }
 .hero-bottom {
   font-size:9px;
@@ -1553,9 +1530,6 @@ main {
   .stage-controls button {
     font-size:10px;
   }
-  .stage-controls .motion-toggle {
-    font-size:9px;
-  }
 }
 @media (min-width:801px) and (max-width:1150px) {
   .hero h1 {
@@ -1568,11 +1542,7 @@ main {
 .request-details li span,.open-source p:last-child {
   color:#716777;
 }
-.stage-controls .motion-toggle {
-  color:#716178;
-}
 
-.stage-controls button[hidden] { display:none; }
 @media(max-width:800px) {
   .hero h1 { font-size:clamp(51px,10.8vw,82px); letter-spacing:-.06em; }
   .hero h1 .heading-accent { letter-spacing:inherit; }
