@@ -65,25 +65,6 @@ document.querySelectorAll('[data-shortcut]').forEach((button) => {
   });
 });
 
-const voiceButton = document.getElementById('voice-play');
-let voiceTimer;
-function stopVoiceDemo() {
-  voiceButton.closest('.voice-demo').classList.remove('is-playing');
-  voiceButton.setAttribute('aria-pressed', 'false');
-  voiceButton.innerHTML = '<span aria-hidden="true">▶</span> Try the rhythm';
-  clearTimeout(voiceTimer);
-}
-voiceButton.addEventListener('click', () => {
-  if (voiceButton.getAttribute('aria-pressed') === 'true') return stopVoiceDemo();
-  voiceButton.closest('.voice-demo').classList.add('is-playing');
-  voiceButton.setAttribute('aria-pressed', 'true');
-  voiceButton.innerHTML = '<span aria-hidden="true">Ⅱ</span> Pause the rhythm';
-  voiceTimer = window.setTimeout(stopVoiceDemo, 8000);
-});
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) stopVoiceDemo();
-});
-
 // Progressive enhancement: content stays visible if observers are unavailable.
 if ('IntersectionObserver' in window && !motionPreference.matches) {
   document.documentElement.classList.add('motion-ready');
@@ -104,7 +85,6 @@ if ('IntersectionObserver' in window && !motionPreference.matches) {
 // Respect the system Reduce Motion setting.
 function syncMotionPreference() {
   stage.classList.toggle('motion-paused', motionPreference.matches);
-  if (motionPreference.matches) stopVoiceDemo();
 }
 motionPreference.addEventListener('change', syncMotionPreference);
 syncMotionPreference();
